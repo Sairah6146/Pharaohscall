@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Pharaoh's Call</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --gold-dim: #8A6D2F;
+    --gold-faint: rgba(201,168,76,0.12);
+    --black: #080705;
+    --surface: #0E0C08;
+    --text-body: #C4B89A;
+    --text-muted: #7A6F58;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--black);
+    color: var(--gold);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* Radial ambient glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── INTRO OVERLAY ── */
+  #intro {
+    position: fixed;
+    inset: 0;
+    background: var(--black);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+    transition: opacity 0.8s ease;
+  }
+  #intro.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .intro-eye {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 2rem;
+    animation: breathe 3s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+  .intro-label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    animation: breathe 3s ease-in-out infinite;
+  }
+
+  /* ── MAIN PAGE ── */
+  #page {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    opacity: 0;
+    transition: opacity 1.2s ease 0.3s;
+  }
+  #page.visible { opacity: 1; }
+
+  /* Decorative line */
+  .rule {
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--gold-dim), transparent);
+    margin: 2rem auto;
+  }
+  .rule-h {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold-dim), transparent);
+    margin: 2rem auto;
+  }
+
+  /* Top eyebrow */
+  .eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 2.5rem;
+  }
+
+  /* Ankh / emblem */
+  .emblem {
+    margin-bottom: 2.5rem;
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* Titles */
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.8rem, 8vw, 5.5rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--gold-light);
+    text-align: center;
+    margin-bottom: 0.3rem;
+  }
+  h1 span {
+    display: block;
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    font-weight: 400;
+    font-style: italic;
+    color: var(--gold-dim);
+    letter-spacing: 0.12em;
+    margin-bottom: 0.6rem;
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-style: italic;
+    color: var(--text-body);
+    text-align: center;
+    max-width: 520px;
+    line-height: 1.7;
+    margin-top: 1.5rem;
+    margin-bottom: 3rem;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── PLAYER ── */
+  .player-wrap {
+    width: 100%;
+    max-width: 560px;
+    background: var(--gold-faint);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 4px;
+    padding: 2rem 2.5rem;
+    position: relative;
+  }
+  .player-wrap::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+  }
+
+  .now-playing {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 0.45em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin-bottom: 1.2rem;
+    text-align: center;
+  }
+
+  .track-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.85rem, 2vw, 1rem);
+    font-weight: 600;
+    color: var(--gold-light);
+    text-align: center;
+    letter-spacing: 0.08em;
+    margin-bottom: 1.5rem;
+    line-height: 1.4;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    position: relative;
+    margin-bottom: 0.6rem;
+  }
+  .progress-track {
+    width: 100%;
+    height: 2px;
+    background: rgba(201,168,76,0.15);
+    border-radius: 1px;
+    position: relative;
+    cursor: pointer;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 1px;
+    width: 0%;
+    transition: width 0.3s linear;
+    pointer-events: none;
+  }
+  .progress-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background: var(--gold-light);
+    border-radius: 50%;
+    transition: left 0.3s linear;
+    pointer-events: none;
+  }
+  input[type=range].seek {
+    position: absolute;
+    inset: -8px 0;
+    width: 100%;
+    opacity: 0;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--gold-dim);
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+  }
+  .btn-play {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold);
+    transition: background 0.2s, transform 0.1s;
+    position: relative;
+  }
+  .btn-play:hover {
+    background: rgba(201,168,76,0.12);
+  }
+  .btn-play:active { transform: scale(0.95); }
+  .btn-play svg { width: 20px; height: 20px; }
+  /* Pulse ring on play */
+  .btn-play.playing::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 1px solid var(--gold);
+    animation: ring 2s ease-out infinite;
+    opacity: 0;
+  }
+  @keyframes ring {
+    0% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+
+  .btn-skip {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gold-dim);
+    transition: color 0.2s;
+    padding: 8px;
+  }
+  .btn-skip:hover { color: var(--gold); }
+  .btn-skip svg { width: 22px; height: 22px; }
+
+  /* Volume */
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 1.5rem;
+  }
+  .volume-row svg { width: 16px; height: 16px; color: var(--gold-dim); flex-shrink: 0; }
+  input[type=range].vol {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: rgba(201,168,76,0.2);
+    border-radius: 1px;
+    outline: none;
+  }
+  input[type=range].vol::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+  }
+
+  /* waveform animation (decoration) */
+  .waveform {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    justify-content: center;
+    height: 28px;
+    margin: 1.2rem 0 0;
+  }
+  .waveform .bar {
+    width: 3px;
+    background: var(--gold-dim);
+    border-radius: 2px;
+    animation: wave 1.4s ease-in-out infinite;
+    opacity: 0.4;
+  }
+  .playing-active .waveform .bar { opacity: 1; }
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+  }
+
+  /* Bottom author line */
+  .author-block {
+    text-align: center;
+    margin-top: 3.5rem;
+  }
+  .author-name {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.75rem, 1.8vw, 0.9rem);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+  }
+  .author-site {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+  }
+  .author-site a { color: var(--gold-dim); text-decoration: none; }
+  .author-site a:hover { color: var(--gold); }
+
+  .divider-ornament {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem auto;
+    max-width: 280px;
+  }
+  .divider-ornament::before, .divider-ornament::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold-dim));
+  }
+  .divider-ornament::after {
+    background: linear-gradient(to left, transparent, var(--gold-dim));
+  }
+  .orn-diamond {
+    width: 6px;
+    height: 6px;
+    background: var(--gold-dim);
+    transform: rotate(45deg);
+  }
+</style>
+</head>
+<body>
+
+<!-- INTRO OVERLAY -->
+<div id="intro" onclick="beginExperience()">
+  <svg class="intro-eye" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="32" cy="32" rx="28" ry="16" stroke="#C9A84C" stroke-width="1.2"/>
+    <circle cx="32" cy="32" r="9" stroke="#C9A84C" stroke-width="1.2"/>
+    <circle cx="32" cy="32" r="4" fill="#C9A84C" opacity="0.7"/>
+    <line x1="4" y1="32" x2="14" y2="32" stroke="#C9A84C" stroke-width="1" opacity="0.4"/>
+    <line x1="50" y1="32" x2="60" y2="32" stroke="#C9A84C" stroke-width="1" opacity="0.4"/>
+  </svg>
+  <div class="intro-label">Tap to hear the call</div>
+</div>
+
+<!-- MAIN PAGE -->
+<div id="page">
+  <div class="eyebrow">A message to Black America</div>
+
+  <!-- Ankh emblem -->
+  <div class="emblem">
+    <svg width="48" height="72" viewBox="0 0 48 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="16" r="13" stroke="#C9A84C" stroke-width="1.2" fill="none"/>
+      <line x1="24" y1="29" x2="24" y2="72" stroke="#C9A84C" stroke-width="1.2"/>
+      <line x1="4" y1="46" x2="44" y2="46" stroke="#C9A84C" stroke-width="1.2"/>
+    </svg>
+  </div>
+
+  <h1>
+    <span>the</span>
+    Pharaoh's Call
+  </h1>
+
+  <p class="subtitle">
+    Why Black America Must Shape the AI Age
+  </p>
+
+  <div class="rule-h" style="width:160px;"></div>
+
+  <!-- PLAYER -->
+  <div class="player-wrap" id="playerWrap">
+    <div class="now-playing">Now Playing</div>
+    <div class="track-title">Why Black America Must Lead the AI Age</div>
+
+    <div class="progress-wrap">
+      <div class="progress-track" id="progressTrack">
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="progress-thumb" id="progressThumb"></div>
+        <input type="range" class="seek" id="seekBar" min="0" max="100" value="0" step="0.1">
+      </div>
+    </div>
+
+    <div class="time-row">
+      <span id="currentTime">0:00</span>
+      <span id="totalTime">--:--</span>
+    </div>
+
+    <div class="controls">
+      <button class="btn-skip" id="btnRewind" aria-label="Rewind 15 seconds" onclick="skip(-15)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/><text x="8" y="15" font-size="5" fill="currentColor" stroke="none" font-family="sans-serif">15</text>
+        </svg>
+      </button>
+
+      <button class="btn-play" id="btnPlay" aria-label="Play" onclick="togglePlay()">
+        <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="6,4 20,12 6,20"/>
+        </svg>
+        <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+          <rect x="5" y="3" width="4" height="18" rx="1"/>
+          <rect x="15" y="3" width="4" height="18" rx="1"/>
+        </svg>
+      </button>
+
+      <button class="btn-skip" id="btnForward" aria-label="Forward 15 seconds" onclick="skip(15)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/><text x="8" y="15" font-size="5" fill="currentColor" stroke="none" font-family="sans-serif">15</text>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Waveform bars -->
+    <div class="waveform" id="waveform">
+      <div class="bar" style="height:40%;animation-delay:0s"></div>
+      <div class="bar" style="height:70%;animation-delay:.1s"></div>
+      <div class="bar" style="height:55%;animation-delay:.2s"></div>
+      <div class="bar" style="height:85%;animation-delay:.05s"></div>
+      <div class="bar" style="height:60%;animation-delay:.15s"></div>
+      <div class="bar" style="height:90%;animation-delay:.25s"></div>
+      <div class="bar" style="height:50%;animation-delay:.08s"></div>
+      <div class="bar" style="height:75%;animation-delay:.18s"></div>
+      <div class="bar" style="height:40%;animation-delay:.3s"></div>
+      <div class="bar" style="height:65%;animation-delay:.12s"></div>
+      <div class="bar" style="height:80%;animation-delay:.22s"></div>
+      <div class="bar" style="height:45%;animation-delay:.07s"></div>
+      <div class="bar" style="height:70%;animation-delay:.17s"></div>
+      <div class="bar" style="height:55%;animation-delay:.27s"></div>
+      <div class="bar" style="height:85%;animation-delay:.03s"></div>
+      <div class="bar" style="height:60%;animation-delay:.13s"></div>
+      <div class="bar" style="height:90%;animation-delay:.23s"></div>
+      <div class="bar" style="height:50%;animation-delay:.09s"></div>
+      <div class="bar" style="height:75%;animation-delay:.19s"></div>
+      <div class="bar" style="height:40%;animation-delay:.29s"></div>
+    </div>
+
+    <!-- Volume -->
+    <div class="volume-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      </svg>
+      <input type="range" class="vol" id="volBar" min="0" max="1" step="0.01" value="1" oninput="setVolume(this.value)">
+    </div>
+  </div>
+
+  <!-- Ornament + Author -->
+  <div class="divider-ornament"><div class="orn-diamond"></div></div>
+
+  <div class="author-block">
+    <div class="author-name">Accem Scott</div>
+    <div class="author-site"><a href="https://pharaohscall.com" target="_blank">pharaohscall.com</a></div>
+  </div>
+</div>
+
+<!-- AUDIO ELEMENT -->
+<audio id="audio" preload="auto">
+  <source src="why-black-america-must-lead-ai.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+<script>
+const audio = document.getElementById('audio');
+const btnPlay = document.getElementById('btnPlay');
+const iconPlay = document.getElementById('iconPlay');
+const iconPause = document.getElementById('iconPause');
+const progressFill = document.getElementById('progressFill');
+const progressThumb = document.getElementById('progressThumb');
+const seekBar = document.getElementById('seekBar');
+const currentTimeEl = document.getElementById('currentTime');
+const totalTimeEl = document.getElementById('totalTime');
+const playerWrap = document.getElementById('playerWrap');
+
+function fmt(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function beginExperience() {
+  const intro = document.getElementById('intro');
+  const page = document.getElementById('page');
+  intro.classList.add('fade-out');
+  page.classList.add('visible');
+  audio.play().catch(() => {});
+  setTimeout(() => { intro.style.display = 'none'; }, 900);
+}
+
+function togglePlay() {
+  if (audio.paused) {
+    audio.play();
+  } else {
+    audio.pause();
+  }
+}
+
+function skip(secs) {
+  audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + secs));
+}
+
+function setVolume(v) {
+  audio.volume = v;
+}
+
+audio.addEventListener('play', () => {
+  iconPlay.style.display = 'none';
+  iconPause.style.display = '';
+  btnPlay.classList.add('playing');
+  playerWrap.classList.add('playing-active');
+});
+
+audio.addEventListener('pause', () => {
+  iconPlay.style.display = '';
+  iconPause.style.display = 'none';
+  btnPlay.classList.remove('playing');
+  playerWrap.classList.remove('playing-active');
+});
+
+audio.addEventListener('loadedmetadata', () => {
+  totalTimeEl.textContent = fmt(audio.duration);
+  seekBar.max = audio.duration;
+});
+
+audio.addEventListener('timeupdate', () => {
+  const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+  progressFill.style.width = pct + '%';
+  progressThumb.style.left = pct + '%';
+  seekBar.value = audio.currentTime;
+  currentTimeEl.textContent = fmt(audio.currentTime);
+});
+
+seekBar.addEventListener('input', () => {
+  audio.currentTime = seekBar.value;
+});
+</script>
+</body>
+</html>
